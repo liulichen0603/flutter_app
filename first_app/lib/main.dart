@@ -1,5 +1,6 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,16 +33,21 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  var generatorPage = GeneratorPage(
+    favorites: [],
+    cardStr: 'cardStr',
+    icon: Icons.favorite_border,
+  );
 
   @override
   Widget build(BuildContext context) {
     Widget page;
     switch (_selectedIndex) {
       case 0:
-        page = const GeneratorPage();
+        page = generatorPage;
         break;
       case 1:
-        page = const Placeholder();
+        page = Favorites(favorites: generatorPage.favorites);
         break;
       default:
         throw UnimplementedError('No widget for $_selectedIndex');
@@ -94,10 +100,10 @@ class _MyHomePageState extends State<MyHomePage> {
 class BigCard extends StatelessWidget {
   const BigCard({
     super.key,
-    required int counter,
-  }) : _counter = counter;
+    required String cardStr,
+  }) : _cardStr = cardStr;
 
-  final int _counter;
+  final String _cardStr;
 
   @override
   Widget build(BuildContext context) {
@@ -106,7 +112,7 @@ class BigCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Text(
-          'Click Times: $_counter',
+          _cardStr,
           style: Theme.of(context).textTheme.displayMedium!.copyWith(
                 color: Theme.of(context).colorScheme.onPrimary,
               ),
@@ -116,32 +122,47 @@ class BigCard extends StatelessWidget {
   }
 }
 
+// ignore: must_be_immutable
 class GeneratorPage extends StatefulWidget {
-  const GeneratorPage({super.key});
+  GeneratorPage(
+      {super.key,
+      required this.favorites,
+      required this.cardStr,
+      required this.icon});
+
+  List<String> favorites;
+  String cardStr;
+  IconData icon;
 
   @override
   State<GeneratorPage> createState() => _GeneratorPageState();
 }
 
 class _GeneratorPageState extends State<GeneratorPage> {
-  int _counter = 0;
-  final _favorites = <int>[];
-  IconData _icon = Icons.favorite;
-
-  void _incrementCounter() {
+  void _getCardString() {
     setState(() {
-      _counter++;
+      const availableChars =
+          'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890';
+      widget.cardStr = List.generate(
+          6,
+          (index) =>
+              availableChars[Random().nextInt(availableChars.length)]).join();
+      if (widget.favorites.contains(widget.cardStr)) {
+        widget.icon = Icons.favorite;
+      } else {
+        widget.icon = Icons.favorite_border;
+      }
     });
   }
 
   void _toggleFavorite() {
     setState(() {
-      if (_favorites.contains(_counter)) {
-        _favorites.remove(_counter);
-        _icon = Icons.favorite_border;
+      if (widget.favorites.contains(widget.cardStr)) {
+        widget.favorites.remove(widget.cardStr);
+        widget.icon = Icons.favorite_border;
       } else {
-        _favorites.add(_counter);
-        _icon = Icons.favorite;
+        widget.favorites.add(widget.cardStr);
+        widget.icon = Icons.favorite;
       }
     });
   }
@@ -152,22 +173,52 @@ class _GeneratorPageState extends State<GeneratorPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
-          BigCard(counter: _counter),
+          BigCard(cardStr: widget.cardStr),
           const SizedBox(height: 10),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               ElevatedButton.icon(
                   onPressed: _toggleFavorite,
-                  icon: Icon(_icon),
+                  icon: Icon(widget.icon),
                   label: const Text('Like')),
               const SizedBox(width: 10),
               ElevatedButton(
-                  onPressed: _incrementCounter, child: const Text('Next')),
+                  onPressed: _getCardString, child: const Text('Next')),
             ],
           ),
         ],
       ),
+    );
+  }
+}
+
+class Favorites extends StatelessWidget {
+  const Favorites({
+    super.key,
+    required List<String> favorites,
+  }) : _favorites = favorites;
+
+  final List<String> _favorites;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_favorites.isEmpty) {
+      return const Center(child: Text('No favorites yet.'));
+    }
+
+    return ListView(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text('You have ${_favorites.length} favorites'),
+        ),
+        for (var str in _favorites)
+          ListTile(
+            leading: const Icon(Icons.favorite),
+            title: Text(str),
+          ),
+      ],
     );
   }
 }
